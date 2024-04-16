@@ -3,6 +3,7 @@ import warnings
 from typing import List
  
 import torch
+import transformers
 from langchain import PromptTemplate
 from langchain.chains import ConversationChain
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
@@ -19,27 +20,25 @@ from transformers import (
  
 warnings.filterwarnings("ignore", category=UserWarning)
 
-MODEL_NAME = "tiiuae/falcon-7b"
+MODEL_NAME = "tiiuae/falcon-7b-instruct"
  
 quantization_config = BitsAndBytesConfig(load_in_8bit = True, llm_int8_threshold=200.0)
 
 model = AutoModelForCausalLM.from_pretrained(
-    MODEL_NAME, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map="cuda:0", quantization_config = quantization_config, 
+    MODEL_NAME, trust_remote_code=True, device_map="cuda:0", quantization_config = quantization_config, 
 )
 model = model.eval()
  
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
 generation_config = model.generation_config
-# generation_config.temperature = 0.0001
+generation_config.temperature = 1
 generation_config.num_return_sequences = 1
 generation_config.max_new_tokens = 500
 generation_config.use_cache = False
 generation_config.repetition_penalty = 1.7
 generation_config.pad_token_id = tokenizer.eos_token_id
 generation_config.eos_token_id = tokenizer.eos_token_id
-generation_config.do_sample = True
-generation_config.top_k = 10
 
 class StopGenerationCriteria(StoppingCriteria):
     def __init__(
@@ -68,7 +67,7 @@ generation_pipeline = pipeline(
     tokenizer=tokenizer,
     return_full_text=True,
     task="text-generation",
-    stopping_criteria = stopping_criteria,
+    # stopping_criteria = stopping_criteria,
     generation_config=generation_config,
 )
  
@@ -83,11 +82,7 @@ memory = ConversationBufferWindowMemory(
 class CleanupOutputParser(BaseOutputParser):
     def parse(self, text: str) -> str:
         user_pattern = r"\nUser"
-        text = re.sub(user_pattern, "", text)
-        human_pattern = r"\nHuman:"
-        text = re.sub(human_pattern, "", text)
-        ai_pattern = r"\nAI:"
-        return re.sub(ai_pattern, "", text).strip()
+        return re.sub(user_pattern, "", text)
  
     @property
     def _type(self) -> str:
@@ -99,9 +94,7 @@ while True:
     Question: {input}
     """.strip()
 
-    #prompt = PromptTemplate(input_variables=["history", "input"], template=template)
-
-    prompt = PromptTemplate(input_variables=['history', 'input'], template='The following is an example of a friendly conversation between a human and an AI. The AI is talkative and provides lots of specific details from its context which is how a feature can influence whether a person is deemed a good or bad payer.\n\nCurrent conversation:\n{history}\nHuman: {input}\nAI:')
+    prompt = PromptTemplate(input_variables=["history", "input"], template=template)
 
     chain = ConversationChain(
         llm=llm,
@@ -111,6 +104,6 @@ while True:
         verbose=True,
     )
 
-    text = input()
+    text = input("Question: ")
     res = chain(text)
     print(res["response"])
