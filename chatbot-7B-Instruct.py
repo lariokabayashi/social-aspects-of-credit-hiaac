@@ -32,7 +32,7 @@ model = model.eval()
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
 generation_config = model.generation_config
-generation_config.temperature = 1
+generation_config.temperature = 100
 generation_config.num_return_sequences = 1
 generation_config.max_new_tokens = 500
 generation_config.use_cache = False

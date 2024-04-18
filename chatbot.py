@@ -1,10 +1,10 @@
 import re
 import warnings
 from typing import List
-
+ 
+import torch
 import transformers
 import langchain
-import torch
 from langchain import PromptTemplate
 from langchain.chains import ConversationChain
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
@@ -19,20 +19,13 @@ from transformers import (
     BitsAndBytesConfig,
 )
 
-langchain.debug = True
+#langchain.debug = true
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
 MODEL_NAME = "tiiuae/falcon-7b"
  
 quantization_config = BitsAndBytesConfig(load_in_8bit = True, llm_int8_threshold=200.0)
-# quantization_config = BitsAndBytesConfig(
-#     load_in_4bit=True,
-#     bnb_4bit_compute_dtype=torch.float16,
-#     bnb_4bit_quant_type="nf4",
-#     bnb_4bit_use_double_quant=True,
-#     llm_int8_enable_fp32_cpu_offload=True
-# )
 
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME, trust_remote_code=True, device_map="cuda:0", quantization_config = quantization_config, 
@@ -41,27 +34,13 @@ model = model.eval()
  
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-# generation_config = model.generation_config
-# generation_config.temperature = 0.5
-# generation_config.num_return_sequences = 1
-# generation_config.use_cache = False
-# generation_config.repetition_penalty = 1.7
-# generation_config.pad_token_id = tokenizer.eos_token_id
-# generation_config.eos_token_id = tokenizer.eos_token_id
-# generation_config.do_sample = True
-# generation_config.top_k = 10
-
 generation_config = model.generation_config
-generation_config.tokenizer=tokenizer,
-generation_config.torch_dtype=torch.bfloat16,
-# generation_config.max_length = 10000,
-generation_config.do_sample = True,
-generation_config.top_k = 10,
-generation_config.num_return_sequences = 1,
-generation_config.use_cache = False
-generation_config.truncation = True,
 generation_config.temperature = 0.5
-generation_config.pad_token_id = tokenizer.eos_token_id,
+generation_config.num_return_sequences = 1
+generation_config.max_new_tokens = 500
+generation_config.use_cache = False
+generation_config.repetition_penalty = 1.7
+generation_config.pad_token_id = tokenizer.eos_token_id
 generation_config.eos_token_id = tokenizer.eos_token_id
 
 class StopGenerationCriteria(StoppingCriteria):
@@ -81,17 +60,16 @@ class StopGenerationCriteria(StoppingCriteria):
                 return True
         return False
     
-stop_tokens = [["Human", ":"], ["AI", ":"]]
+# stop_tokens = [["Human", ":"], ["AI", ":"], ["Question", ":"]]
+stop_tokens = [["Answer", ":"],["Question", ":"]]
 stopping_criteria = StoppingCriteriaList(
     [StopGenerationCriteria(stop_tokens, tokenizer, model.device)]
 )
 
-tokenizer = AutoTokenizer.from_pretrained(model)
 generation_pipeline = pipeline(
     model=model,
     tokenizer=tokenizer,
     return_full_text=True,
-    max_new_tokens = 512,
     task="text-generation",
     stopping_criteria = stopping_criteria,
     generation_config=generation_config,
@@ -107,56 +85,18 @@ memory = ConversationBufferWindowMemory(
 # Para garantir resultados limpos no chatbot
 class CleanupOutputParser(BaseOutputParser):
     def parse(self, text: str) -> str:
-        # user_pattern = r"\nUser"
-        # text = re.sub(user_pattern, "", text)
-        human_pattern = r"\nHuman:"
-        text = re.sub(human_pattern, "", text)
-        ai_pattern = r"\nAI:"
-        return re.sub(ai_pattern, "", text).strip()
+        user_pattern = r"\nUser"
+        return re.sub(user_pattern, "", text)
  
     @property
     def _type(self) -> str:
         return "output_parser"
     
-# while True: 
-#     template = """"
-#     Current conversation:
-#     {history}
-#     Human: {input}
-#     AI:""".strip()
-
-#     prompt = PromptTemplate(input_variables=["history", "input"], template=template)
-
-#     prompt = PromptTemplate(input_variables=['history', 'input'], template=template)
-
-#     chain = ConversationChain(
-#         llm=llm,
-#         memory=memory,
-#         prompt=prompt,
-#         output_parser=CleanupOutputParser(),
-#         verbose=True,
-#     )
-
-#     text = input().strip()
-#     res = chain(text)
-#     print(res["response"])
-
-# tokenizer = AutoTokenizer.from_pretrained(model)
-# pipeline = transformers.pipeline(
-#     "text-generation",
-#     model=model,
-#     tokenizer=tokenizer,
-#     torch_dtype=torch.bfloat16,
-#     trust_remote_code=True,
-#     device_map="auto",
-# )
-
-while True:
+while True: 
     template = """"
-    Current conversation:
-    {history}
-    Human: {input}
-    AI:""".strip()
+    Current History:{history}
+    Question: {input}
+    """.strip()
 
     prompt = PromptTemplate(input_variables=["history", "input"], template=template)
 
@@ -168,6 +108,6 @@ while True:
         verbose=True,
     )
 
-    text = "what is the capital of france?"
+    text = input("Question: ")
     res = chain(text)
     print(res["response"])
