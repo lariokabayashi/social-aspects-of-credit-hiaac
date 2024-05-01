@@ -1,0 +1,17 @@
+{
+  "additional_special_tokens": [
+    ">>TITLE<<",
+    ">>ABSTRACT<<",
+    ">>INTRODUCTION<<",
+    ">>SUMMARY<<",
+    ">>COMMENT<<",
+    ">>ANSWER<<",
+    ">>QUESTION<<",
+    ">>DOMAIN<<",
+    ">>PREFIX<<",
+    ">>SUFFIX<<",
+    ">>MIDDLE<<"
+  ],
+  "eos_token": "<|endoftext|>",
+  "pad_token": "<|endoftext|>"
+}
