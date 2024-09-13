@@ -4,6 +4,8 @@
 
 This project focuses on applying Large Language Models (LLMs) to generate understandable natural language explanations for decisions made in credit risk assessments. The goal is to make credit scoring models more transparent and accessible, particularly to individuals who may lack familiarity with machine learning concepts.
 
+For more detailed information, please refer to the [Research_Project.pdf](Research_Project.pdf) document included in this repository.
+
 ### Objectives
 
 - Develop accessible natural language explanations for credit scoring.
@@ -54,7 +56,7 @@ This project focuses on applying Large Language Models (LLMs) to generate unders
    ```
    
 2. **Interacting with the Interface**:
-   - Access the URL indicated on the terminal
+   - Access the URL indicated on the terminal.
    - Use the provided interface to input credit data and receive explanations for credit decisions.
 
 ### Limitations
