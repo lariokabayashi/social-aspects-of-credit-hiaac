@@ -7,7 +7,7 @@ from llama_index.agent.openai import OpenAIAgent
 from llama_index.llms.openai import OpenAI
 from llama_index.core.tools import BaseTool, FunctionTool
 
-client = Groq(api_key = os.getenv('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'))
+client = Groq(api_key = os.getenv('GROQ API_KEY'))
 MODEL = 'llama3-70b-8192'
 
 def get_PDP_results(feature_name):
